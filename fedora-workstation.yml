@@ -1,0 +1,28 @@
+- hosts: localhost
+  tasks:
+  - name: Add Google Chrome
+    become: yes
+    yum_repository:
+      name: google-chrome
+      description: google-chrome
+      baseurl: http://dl.google.com/linux/chrome/rpm/stable/x86_64
+      enabled: yes
+      gpgcheck: yes
+      gpgkey: https://dl.google.com/linux/linux_signing_key.pub
+
+  - name: install RPMs
+    become: yes
+    dnf:
+      name: "{{ item }}"
+      state: latest
+    loop:
+      - docker-compose
+      - git
+      - gnome-tweaks
+      - golang
+      - google-chrome-stable
+      - htop
+      - make
+      - podman # Docker alternative
+      - snapd
+      - vim
