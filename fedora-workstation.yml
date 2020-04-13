@@ -1,6 +1,26 @@
 - hosts: localhost
+  vars:
+     nfs:
+       options: '_netdev,defaults,soft'
+       mounts:
+         - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
+         - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
+         - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
+     rpms:
+       - docker-compose
+       - git
+       - gnome-tweaks
+       - golang
+       - google-chrome-stable
+       - htop
+       - make
+       - podman # Docker alternative
+       - snapd
+       - vim
+
   tasks:
-  - name: Add Google Chrome
+
+  - name: Add Google Chrome Repo
     become: yes
     yum_repository:
       name: google-chrome
@@ -13,16 +33,21 @@
   - name: install RPMs
     become: yes
     dnf:
-      name: "{{ item }}"
+      name: "{{ rpms }}"
       state: latest
-    loop:
-      - docker-compose
-      - git
-      - gnome-tweaks
-      - golang
-      - google-chrome-stable
-      - htop
-      - make
-      - podman # Docker alternative
-      - snapd
-      - vim
+
+#- name: Disable SELinux
+#  selinux:
+#    state: disabled
+
+  - name: Ensure NFS mount points exist
+    become: yes
+    action: file path={{item.target}} state=directory
+    with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+  - name: Setup NFS mount points
+    become: yes
+    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+    with_items: "{{ nfs.mounts }}"
