@@ -1,5 +1,6 @@
 - hosts: localhost
   vars:
+     printer_ip: '192.168.2.196'
      nfs:
        options: '_netdev,defaults,soft'
        mounts:
@@ -13,11 +14,23 @@
        - golang
        - google-chrome-stable
        - htop
+       - jq
        - make
+       - nmap
        - podman # Docker alternative
+       - screen
        - snapd
+       - tmux
        - vim
-
+       - wireshark
+     snaps:
+       - {name: 'atom', classic: 'yes'}
+       - {name: 'intellij-idea-ultimate', classic: 'yes'}
+       - {name: 'kubectl', classic: 'yes'}
+       - {name: 'minikube', classic: 'no'}
+       - {name: 'signal-desktop', classic: 'no'}
+       - {name: 'slack', classic: 'yes'}
+       - {name: 'zoom-client', classic: 'no'}
   tasks:
 
   - name: Add Google Chrome Repo
@@ -36,10 +49,6 @@
       name: "{{ rpms }}"
       state: latest
 
-#- name: Disable SELinux
-#  selinux:
-#    state: disabled
-
   - name: Ensure NFS mount points exist
     become: yes
     action: file path={{item.target}} state=directory
@@ -51,3 +60,23 @@
     become: yes
     mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
     with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+# May first need to:
+#sudo snap known --remote model model=generic-classic series=16 brand-id=generic > assertion
+#sudo snap ack assertion
+#sudo ln -s /var/lib/snapd/snap /snap
+
+  - name: Install Snaps
+    become: yes
+    snap:
+      name: "{{item.name}}"
+      classic: "{{item.classic}}"
+    with_items: "{{snaps}}"
+    tags:
+      - snap
+
+#- name: Disable SELinux
+#  selinux:
+#    state: disabled
