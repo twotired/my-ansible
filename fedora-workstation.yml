@@ -9,7 +9,9 @@
          - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
      rpms:
        - docker-compose
+       - evolution
        - git
+       - gnome-documents
        - gnome-tweaks
        - golang
        - google-chrome-stable
@@ -33,6 +35,7 @@
        - {name: 'minikube', classic: 'no'}
        - {name: 'signal-desktop', classic: 'no'}
        - {name: 'slack', classic: 'yes'}
+       - {name: 'vlc', classic: 'no'}
        - {name: 'zoom-client', classic: 'no'}
   tasks:
 
