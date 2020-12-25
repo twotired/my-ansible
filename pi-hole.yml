@@ -1,0 +1,41 @@
+- hosts: localhost
+  vars:
+     router: '192.168.2.1'
+     pi_hostname: 'plexpi'
+     pi_ip: '192.168.2.90'
+     apts:
+       - ntp
+  tasks:
+
+  - name: install PKGs
+    become: yes
+    apt:
+      name: "{{ apts }}"
+      state: latest
+
+  - name: Make sure NTP is started up
+    service: name=ntp state=started enabled=yes
+    tags: ntp
+
+  - name: "Download Pi-Hole installer"
+    get_url:
+        url: https://install.pi-hole.net
+        dest: ~/install-pihole.sh
+        mode: 0740
+    tags: pihole
+
+  - name: Install Pi-Hole
+    shell: "~/install-pihole.sh --unattended"
+    register: dbg_install_pihole
+    tags: pihole
+
+  - name: Set PiHole to update every week
+    become: True
+    replace:
+      path: /etc/cron.d/pihole
+      regexp: '^#(.*updatePihole.*)$'
+      replace: '\1'
+      backup: yes
+    tags: admin
+
+
