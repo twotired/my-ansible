@@ -1,0 +1,90 @@
+- hosts: localhost
+  vars:
+     printer_ip: '192.168.2.196'
+     nfs:
+       options: '_netdev,intr,v4,sec=sys'
+       mounts:
+         - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
+         - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
+         - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
+     rpms:
+       - docker-compose
+       - evolution
+       - git
+       - gnome-documents
+       - gnome-tweaks
+       - golang
+       - google-chrome-stable
+       - grub-customizer
+       - grub2-tools
+       - grubby
+       - htop
+       - jq
+       - make
+       - nmap
+       - podman # Docker alternative
+       - screen
+       - snapd
+       - socat
+       - tmux
+       - vim
+       - virt-manager
+       - wireshark
+     snaps:
+       # - {name: 'atom', classic: 'yes'}
+       # - {name: 'intellij-idea-ultimate', classic: 'yes'}
+       # - {name: 'kubectl', classic: 'yes'}
+       # - {name: 'minikube', classic: 'no'}
+       # - {name: 'signal-desktop', classic: 'no'}
+       # - {name: 'slack', classic: 'yes'}
+       - {name: 'vlc', classic: 'no'}
+       - {name: 'zoom-client', classic: 'no'}
+  tasks:
+
+  - name: Add Google Chrome Repo
+    become: yes
+    yum_repository:
+      name: google-chrome
+      description: google-chrome
+      baseurl: http://dl.google.com/linux/chrome/rpm/stable/x86_64
+      enabled: yes
+      gpgcheck: yes
+      gpgkey: https://dl.google.com/linux/linux_signing_key.pub
+
+  - name: install RPMs
+    become: yes
+    dnf:
+      name: "{{ rpms }}"
+      state: latest
+
+  - name: Ensure NFS mount points exist
+    become: yes
+    action: file path={{item.target}} state=directory
+    with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+  - name: Setup NFS mount points
+    become: yes
+    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+    with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+# May first need to:
+#sudo snap known --remote model model=generic-classic series=16 brand-id=generic > assertion
+#sudo snap ack assertion
+#sudo ln -s /var/lib/snapd/snap /snap
+
+  - name: Install Snaps
+    become: yes
+    snap:
+      name: "{{item.name}}"
+      classic: "{{item.classic}}"
+    with_items: "{{snaps}}"
+    tags:
+      - snap
+
+#- name: Disable SELinux
+#  selinux:
+#    state: disabled
