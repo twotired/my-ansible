@@ -1,0 +1,18 @@
+- name: Ensure NFS mount points exist
+  become: yes
+  action: file path={{item.target}} state=directory
+  with_items: "{{ nfs.mounts }}"
+  tags:
+   - nfs
+
+- name: Setup NFS mount points
+  become: yes
+  mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+  with_items: "{{ nfs.mounts }}"
+  tags:
+   - nfs
+
+- name: Make sure NTP is started up
+  service: name=ntp state=started enabled=yes
+  tags: ntp
+
