@@ -1,0 +1,9 @@
+router: '192.168.2.1'
+printer_ip: '192.168.2.196'
+nfs:
+  options: '_netdev,intr,v4,sec=sys'
+  mounts:
+    - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
+    - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
+    - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
+

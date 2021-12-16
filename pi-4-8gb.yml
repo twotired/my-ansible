@@ -1,0 +1,109 @@
+- hosts: localhost
+  vars:
+     router: '192.168.2.1'
+     pi_hostname: 'pi4-8gb'
+     pi_ip: '192.168.2.141'
+     printer_ip: '192.168.2.196'
+     nfs:
+       options: '_netdev,intr,v4,sec=sys'
+       mounts:
+         - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
+         - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
+         - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
+     apts:
+       - vim
+       - git
+       - jq
+       - make
+       - tmux
+       - screen
+       - ntp
+       - apt-transport-https
+       - ocl-icd-libopencl1
+  tasks:
+
+  - name: get hostname via raspi-config
+    shell: "raspi-config nonint get_hostname"
+    register: raspi_hostname
+    changed_when: False
+    check_mode: no
+    tags:
+      - raspi
+
+  - name: get ethernet ip via ifconfig
+    shell: "ifconfig eth0 | grep inet | awk '{ print $2 }' | head -1"
+    register: raspi_ip
+    changed_when: False
+    check_mode: no
+    tags:
+      - raspi
+
+  - name: get ssh enabled status
+    shell: "raspi-config nonint get_ssh"
+    register: raspi_ssh_disabled
+    changed_when: False
+    check_mode: no
+    tags:
+      - raspi
+
+  - name: set raspi-config facts (all)
+    set_fact:
+      raspi_hostname: "{{ raspi_hostname.stdout }}"
+      raspi_ip: "{{ raspi_ip.stdout }}"
+
+  - name: set hostname
+    become: yes
+    shell: "raspi-config nonint do_hostname {{ pi_hostname }}"
+    when: raspi_hostname != pi_hostname
+
+    #  - name: enable ssh
+    #    become: yes
+    #    shell: "raspi-config nonint do_ssh 0"
+    #    when: raspi_ssh_disabled != 0
+
+  - name: install PKGs
+    become: yes
+    apt:
+      name: "{{ apts }}"
+      state: latest
+
+  - name: Ensure NFS mount points exist
+    become: yes
+    action: file path={{item.target}} state=directory
+    with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+  - name: Setup NFS mount points
+    become: yes
+    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+    with_items: "{{ nfs.mounts }}"
+    tags:
+     - nfs
+
+  - name: Make sure NTP is started up
+    service: name=ntp state=started enabled=yes
+    tags: ntp
+
+################################################################################
+  - name: "Download Pi-Hole installer"
+    get_url:
+        url: https://install.pi-hole.net
+        dest: ~/install-pihole.sh
+        mode: 0740
+    tags: pihole
+
+  - name: Install Pi-Hole
+    shell: "~/install-pihole.sh --unattended"
+    register: dbg_install_pihole
+    tags: pihole
+
+  - name: Set PiHole to update every week
+    become: True
+    replace:
+      path: /etc/cron.d/pihole
+      regexp: '^#(.*updatePihole.*)$'
+      replace: '\1'
+      backup: yes
+    tags: admin
+
