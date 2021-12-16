@@ -22,7 +22,6 @@
        - jq
        - make
        - nmap
-       - podman # Docker alternative
        - screen
        - snapd
        - socat
@@ -30,6 +29,7 @@
        - vim
        - virt-manager
        - wireshark
+         #       - podman # Docker alternative # incompatible? with docker compose
      snaps:
        # - {name: 'atom', classic: 'yes'}
        # - {name: 'intellij-idea-ultimate', classic: 'yes'}
