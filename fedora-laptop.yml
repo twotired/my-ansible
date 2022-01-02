@@ -1,17 +1,16 @@
 - hosts: localhost
   vars:
      printer_ip: '192.168.2.196'
-     nfs:
-       options: '_netdev,intr,v4,sec=sys'
-       mounts:
-         - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
-         - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
-         - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
+       #     nfs:
+       #       options: '_netdev,intr,v4,sec=sys'
+       #       mounts:
+       #         - {target: '/mnt/Homes', src: '192.168.2.111:/homes'}
+       #         - {target: '/mnt/Multimedia', src: '192.168.2.111:/Multimedia'}
+       #         - {target: '/mnt/Download', src: '192.168.2.111:/Download'}
      rpms:
        - docker-compose
        - evolution
        - git
-       - gnome-documents
        - gnome-tweaks
        - golang
        - google-chrome-stable
@@ -20,6 +19,7 @@
        - grubby
        - htop
        - jq
+       - libappindicator-gtk3
        - make
        - nmap
        - screen
@@ -57,19 +57,19 @@
       name: "{{ rpms }}"
       state: latest
 
-  - name: Ensure NFS mount points exist
-    become: yes
-    action: file path={{item.target}} state=directory
-    with_items: "{{ nfs.mounts }}"
-    tags:
-     - nfs
+        #  - name: Ensure NFS mount points exist
+        #    become: yes
+        #    action: file path={{item.target}} state=directory
+        #    with_items: "{{ nfs.mounts }}"
+        #    tags:
+        #     - nfs
 
-  - name: Setup NFS mount points
-    become: yes
-    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
-    with_items: "{{ nfs.mounts }}"
-    tags:
-     - nfs
+        #  - name: Setup NFS mount points
+        #    become: yes
+        #    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+        #    with_items: "{{ nfs.mounts }}"
+        #    tags:
+        #     - nfs
 
 # May first need to:
 #sudo snap known --remote model model=generic-classic series=16 brand-id=generic > assertion
