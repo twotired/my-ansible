@@ -20,90 +20,126 @@
        - ntp
        - apt-transport-https
        - ocl-icd-libopencl1
+       - podman
+       - apt-transport-https
   tasks:
 
-  - name: get hostname via raspi-config
-    shell: "raspi-config nonint get_hostname"
-    register: raspi_hostname
-    changed_when: False
-    check_mode: no
-    tags:
-      - raspi
-
-  - name: get ethernet ip via ifconfig
-    shell: "ifconfig eth0 | grep inet | awk '{ print $2 }' | head -1"
-    register: raspi_ip
-    changed_when: False
-    check_mode: no
-    tags:
-      - raspi
-
-  - name: get ssh enabled status
-    shell: "raspi-config nonint get_ssh"
-    register: raspi_ssh_disabled
-    changed_when: False
-    check_mode: no
-    tags:
-      - raspi
-
-  - name: set raspi-config facts (all)
-    set_fact:
-      raspi_hostname: "{{ raspi_hostname.stdout }}"
-      raspi_ip: "{{ raspi_ip.stdout }}"
-
-  - name: set hostname
-    become: yes
-    shell: "raspi-config nonint do_hostname {{ pi_hostname }}"
-    when: raspi_hostname != pi_hostname
-
-    #  - name: enable ssh
+    #  - name: get hostname via raspi-config
+    #    shell: "raspi-config nonint get_hostname"
+    #    register: raspi_hostname
+    #    changed_when: False
+    #    check_mode: no
+    #    tags:
+    #      - raspi
+    #
+    #  - name: get ethernet ip via ifconfig
+    #    shell: "ifconfig eth0 | grep inet | awk '{ print $2 }' | head -1"
+    #    register: raspi_ip
+    #    changed_when: False
+    #    check_mode: no
+    #    tags:
+    #      - raspi
+    #
+    #  - name: get ssh enabled status
+    #    shell: "raspi-config nonint get_ssh"
+    #    register: raspi_ssh_disabled
+    #    changed_when: False
+    #    check_mode: no
+    #    tags:
+    #      - raspi
+    #
+    #  - name: set raspi-config facts (all)
+    #    set_fact:
+    #      raspi_hostname: "{{ raspi_hostname.stdout }}"
+    #      raspi_ip: "{{ raspi_ip.stdout }}"
+    #
+    #  - name: set hostname
     #    become: yes
-    #    shell: "raspi-config nonint do_ssh 0"
-    #    when: raspi_ssh_disabled != 0
-
-  - name: install PKGs
-    become: yes
-    apt:
-      name: "{{ apts }}"
-      state: latest
-
-  - name: Ensure NFS mount points exist
-    become: yes
-    action: file path={{item.target}} state=directory
-    with_items: "{{ nfs.mounts }}"
-    tags:
-     - nfs
-
-  - name: Setup NFS mount points
-    become: yes
-    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
-    with_items: "{{ nfs.mounts }}"
-    tags:
-     - nfs
-
-  - name: Make sure NTP is started up
-    service: name=ntp state=started enabled=yes
-    tags: ntp
+    #    shell: "raspi-config nonint do_hostname {{ pi_hostname }}"
+    #    when: raspi_hostname != pi_hostname
+    #
+    #    #  - name: enable ssh
+    #    #    become: yes
+    #    #    shell: "raspi-config nonint do_ssh 0"
+    #    #    when: raspi_ssh_disabled != 0
+    #
+    #  - name: install PKGs
+    #    become: yes
+    #    apt:
+    #      name: "{{ apts }}"
+    #      state: latest
+    #
+    #  - name: Ensure NFS mount points exist
+    #    become: yes
+    #    action: file path={{item.target}} state=directory
+    #    with_items: "{{ nfs.mounts }}"
+    #    tags:
+    #     - nfs
+    #
+    #  - name: Setup NFS mount points
+    #    become: yes
+    #    mount: name="{{item.target}}" src="{{item.src}}" fstype=nfs opts="{{nfs.options}}" state=mounted
+    #    with_items: "{{ nfs.mounts }}"
+    #    tags:
+    #     - nfs
+    #
+    #  - name: Make sure NTP is started up
+    #    service: name=ntp state=started enabled=yes
+    #    tags: ntp
 
 ################################################################################
-  - name: "Download Pi-Hole installer"
+#  - name: "Download Pi-Hole installer"
+#    get_url:
+#        url: https://install.pi-hole.net
+#        dest: ~/install-pihole.sh
+#        mode: 0740
+#    tags: pihole
+
+      #  https://discourse.pi-hole.net/t/pi-hole-as-part-of-a-post-installation-script/3523/4
+      #  - name: Install Pi-Hole
+      #    become: True
+      #    shell: "/home/pi/install-pihole.sh --unattended"
+      #    register: dbg_install_pihole
+      #    tags: pihole
+
+      #  - name: Set PiHole to update every week
+      #    become: True
+      #    replace:
+      #      path: /etc/cron.d/pihole
+      #      regexp: '^#(.*updatePihole.*)$'
+      #      replace: '\1'
+      #      backup: yes
+      #    tags: admin
+      #
+
+
+  - name: "Download Plex key"
     get_url:
-        url: https://install.pi-hole.net
-        dest: ~/install-pihole.sh
+        url: https://downloads.plex.tv/plex-keys/PlexSign.key 
+        dest: /tmp/
         mode: 0740
-    tags: pihole
+    tags: plex
 
-  - name: Install Pi-Hole
-    shell: "~/install-pihole.sh --unattended"
-    register: dbg_install_pihole
-    tags: pihole
-
-  - name: Set PiHole to update every week
+  - name: install key
     become: True
-    replace:
-      path: /etc/cron.d/pihole
-      regexp: '^#(.*updatePihole.*)$'
-      replace: '\1'
-      backup: yes
-    tags: admin
+    shell: "apt-key add /tmp/PlexSign.key"
+    tags: plex
+
+  - name: "Add plex repo"
+    become: True
+    lineinfile:
+      create: yes
+      path: '/etc/apt/sources.list.d/plexmediaserver.list'
+      line: 'deb https://downloads.plex.tv/repo/deb public main'
+    tags: plex
+
+  - name: Update PKG list
+    become: True
+    shell: "apt-get update"
+    tags: plex
+
+  - name: Install Plex
+    become: True
+    apt:
+      name: plexmediaserver
 

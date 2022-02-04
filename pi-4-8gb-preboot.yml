@@ -1,0 +1,22 @@
+- hosts: localhost
+  vars:
+    - boot_mount_point: /run/media/jwells/boot
+    - root_mount_point: /run/media/jwells/rootfs
+  tasks:
+   - name: enable ssh
+     copy:
+       content: ""
+       dest: "{{ boot_mount_point + '/ssh' }}"
+       force: no
+
+   - name: create .ssh dir
+     file:
+       path: "{{ root_mount_point + '/home/pi/.ssh/' }}"
+       state: directory
+       mode: 0700
+
+   - name: copy ssh key
+     ansible.builtin.copy:
+       src: ~/.ssh/id_rsa.pub
+       dest: "{{ root_mount_point + '/home/pi/.ssh/authorized_keys' }}"
+       mode: 0600
